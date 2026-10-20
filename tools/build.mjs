@@ -26,3 +26,18 @@ html = html.replace(/<script type="module" src="\.\/src\/main\.js"><\/script>/, 
 const out = join(root, 'dist/hotwire.html');
 writeFileSync(out, html);
 console.log(`built ${out} (${(html.length / 1024).toFixed(0)} KB)`);
+
+// Artifact variant: the hosting page supplies the document skeleton, so ship only the inner content.
+let frag = html
+  .replace(/^<!doctype html>\s*<html[^>]*>\s*<head>\s*/i, '')
+  .replace(/<meta charset="utf-8" \/>\s*/i, '')
+  .replace(/<meta name="viewport"[^>]*\/>\s*/i, '')
+  .replace(/<meta name="theme-color"[^>]*\/>\s*/i, '')
+  .replace(/<link rel="icon"[^>]*\/>\s*/i, '')
+  .replace(/<\/head>\s*<body>\s*/i, '')
+  .replace(/\s*<\/body>\s*<\/html>\s*$/i, '\n')
+  .replace('<title>HOTWIRE — sunset joyride sandbox</title>', '<title>HOTWIRE</title>')
+  .replace(':root {\n  --accent: #ff8a3d;', ':root {\n  color-scheme: dark;\n  --accent: #ff8a3d;');
+const outA = join(root, 'dist/hotwire-artifact.html');
+writeFileSync(outA, frag);
+console.log(`built ${outA} (${(frag.length / 1024).toFixed(0)} KB)`);
