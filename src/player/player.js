@@ -193,7 +193,7 @@ export class Player {
     for (const v of this.vehicles.vehicles) {
       if (Math.hypot(v.x - this.x, v.z - this.z) > v.radius + r + 0.2) continue;
       if (!collideCircleOBB(this.x, this.z, r, v, _res)) continue;
-      const closing = v.vx * -_res.nx + v.vz * -_res.nz;   // car speed toward the player
+      const closing = v.vx * _res.nx + v.vz * _res.nz;   // car speed toward the player (normal points car -> player)
       if (this.state !== 'knocked' && v.speed > 2.5 && closing > 1.5) {
         this.knockdown(v.vx * 0.9 + _res.nx * 2, v.vz * 0.9 + _res.nz * 2, 3 + Math.min(4, v.speed * 0.2));
         v.bounceVel += 0.8;

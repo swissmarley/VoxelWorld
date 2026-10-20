@@ -130,13 +130,29 @@ export class City {
     }
     this.triCount = tris;
 
-    // ---- ground plane (grass) + water ----
-    const ground = new THREE.Mesh(new THREE.PlaneGeometry(4000, 4000), new THREE.MeshLambertMaterial({ color: PALETTE.grass }));
-    ground.rotation.x = -Math.PI / 2;
-    ground.position.z = this.waterLine - 2000;   // land ends at the waterline; the sea takes over beyond
-    ground.receiveShadow = true;
-    ground.name = 'ground';
-    this.group.add(ground);
+    // ---- ground: grass strips around the city (never under the roads, which keeps huge
+    // triangles from fighting the road slabs at wide FOVs), plus a dark underlay far below ----
+    const grassMat = new THREE.MeshLambertMaterial({ color: PALETTE.grass });
+    const L = this.half + cfg.sidewalk;          // outer edge of the sidewalk ring
+    const FAR = 2000;
+    const strip = (x0, x1, z0, z1) => {
+      const w = x1 - x0, d = z1 - z0;
+      const geo = new THREE.PlaneGeometry(w, d, Math.max(1, Math.round(w / 80)), Math.max(1, Math.round(d / 80)));
+      const m = new THREE.Mesh(geo, grassMat);
+      m.rotation.x = -Math.PI / 2;
+      m.position.set((x0 + x1) / 2, 0, (z0 + z1) / 2);
+      m.receiveShadow = true;
+      m.name = 'ground';
+      this.group.add(m);
+    };
+    strip(-FAR, FAR, -FAR, -L);                       // north
+    strip(-FAR, -L, -L, this.waterLine);              // west
+    strip(L, FAR, -L, this.waterLine);                // east
+    const underlay = new THREE.Mesh(new THREE.PlaneGeometry(2 * L + 2, 2 * L + 2), new THREE.MeshBasicMaterial({ color: 0x2a2630 }));
+    underlay.rotation.x = -Math.PI / 2;
+    underlay.position.set(0, -0.6, 0);
+    underlay.name = 'underlay';
+    this.group.add(underlay);
 
     // ---- static collider hash ----
     this.hash = new SpatialHash(24);
@@ -201,16 +217,16 @@ export class City {
     for (let x = -L + 2.5; x <= L - 2.5; x += 5) if (Math.round((x + L) / 5) % 2 === 0) far.slab(x, cfg.curb + 0.005, half + sw + promW / 2, 4.9, promW - 0.2, PALETTE.concreteDark);
     const sandZ0 = half + sw + promW, sandZ1 = half + cfg.shoulder + 6;
     this.waterLine = sandZ1;
-    far.box(0, -0.2, (sandZ0 + sandZ1) / 2, 2 * L + 40, 0.44, sandZ1 - sandZ0, PALETTE.sand, { noBottom: true });
+    far.box(0, -0.2, (sandZ0 + sandZ1) / 2, 2 * L, 0.44, sandZ1 - sandZ0, PALETTE.sand, { noBottom: true });
     // water
     const water = new THREE.Mesh(new THREE.PlaneGeometry(4000, 1800), new THREE.MeshLambertMaterial({ color: PALETTE.water }));
     water.rotation.x = -Math.PI / 2;
-    water.position.set(0, -0.08, sandZ1 + 900 - 20);
+    water.position.set(0, -0.05, sandZ1 + 900);
     water.receiveShadow = true;
     water.name = 'water';
     this.group.add(water);
     // low-poly waves: pale slabs near the shore
-    for (let x = -L - 20; x < L + 20; x += 14) far.slab(x + rng.range(-3, 3), -0.06, sandZ1 + rng.range(2, 10), rng.range(6, 10), rng.range(0.6, 1.2), 0xd5f3f7);
+    for (let x = -L + 4; x < L - 4; x += 14) far.slab(x + rng.range(-3, 3), -0.06, sandZ1 + rng.range(2, 10), rng.range(6, 10), rng.range(0.6, 1.2), 0xd5f3f7);
     // palms along the promenade
     for (let x = -L + 10; x <= L - 10; x += 13) {
       tree(far, rng, x + rng.range(-1.5, 1.5), half + sw + promW - 1.6, { type: 'palm', y0: cfg.curb });

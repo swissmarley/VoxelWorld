@@ -134,22 +134,23 @@ export class Traffic {
         if (v.controller !== 'ai' && !(v.controller === 'none' && v !== player.lastCar)) continue;
         if (v === player.car) continue;
         const d = Math.hypot(v.x - px, v.z - pz);
-        if (d > this.cfg.despawnRadius) this.vehicles.remove(v);
+        // jammed for a long time and out of sight: quietly recycle
+        if (v.controller === 'ai' && !v.wrecked) { v.jamT = v.speed < 0.3 ? (v.jamT || 0) + 0.5 : 0; }
+        if (d > this.cfg.despawnRadius || (d > 60 && v.jamT > 20) || (d > 140 && v.wrecked && (v.wreckAge = (v.wreckAge || 0) + 0.5) > 60)) this.vehicles.remove(v);
       }
       if (this.aiCount() < this.cfg.target) for (let k = 0; k < 6; k++) if (this.spawnOne(px, pz, 110, this.cfg.spawnRadius)) break;
     }
   }
 
-  drive(v, h, time, player) {
+  drive(v, h, time, player, opts = null) {
     const ai = v.ai;
+    const reckless = !!(opts && opts.reckless);
     if (ai.dead) { v.setControls(0, 1, 0, false); return; }
     // dazed after a hit: brake, then replan once settled
-    if (v.lastImpact.t > ai.lastImpactT && v.lastImpact.dv > 1.0) { ai.lastImpactT = v.lastImpact.t; ai.state = 'dazed'; ai.waitT = 1.6 + Math.min(2.5, v.lastImpact.dv * 0.2); }
-    if (ai.state === 'dazed') {
-      ai.waitT -= h;
-      v.setControls(0, 0.8, 0, false);
-      if (ai.waitT <= 0 && v.speed < 1.5) this.replan(v);
-      return;
+    if (v.lastImpact.t > ai.lastImpactT && v.lastImpact.dv > 2.5) {
+      ai.lastImpactT = v.lastImpact.t;
+      if (reckless) { if (v.lastImpact.dv > 4) this.replan(v); }
+      else { ai.state = 'dazed'; ai.waitT = 1.2 + Math.min(2.5, v.lastImpact.dv * 0.2); }
     }
     if (ai.state === 'reverse') {
       ai.reverseT -= h;
@@ -181,6 +182,14 @@ export class Traffic {
     }
     const target = ai.points[0];
     if (!target) { v.setControls(0, 1, 0, false); return; }
+    if (reckless && v.wrecked) return;
+    if (ai.state === 'dazed') {
+      ai.waitT -= h;
+      const a0 = wrapAngle(Math.atan2(target.x - v.x, target.z - v.z) - v.yaw);
+      v.setControls(0, 1, clamp(a0 * 1.6, -1, 1), false);
+      if (ai.waitT <= 0 && v.speed < 1.5) this.replan(v);
+      return;
+    }
 
     // steering toward the target point
     const tdx = target.x - v.x, tdz = target.z - v.z;
@@ -195,16 +204,16 @@ export class Traffic {
     }
 
     // desired speed
-    let desired = ai.limit;
-    if (Math.abs(angle) > 0.25) desired = Math.min(desired, 5.5);
+    let desired = reckless ? opts.limit : ai.limit;
+    if (Math.abs(angle) > 0.25) desired = Math.min(desired, reckless ? 11 : 5.5);
     const nextTurn = ai.points.find((p) => p.kind === 'turn');
     if (nextTurn) {
       const dT = Math.hypot(nextTurn.x - v.x, nextTurn.z - v.z);
-      if (dT < 14) desired = Math.min(desired, nextTurn.turn === 'S' ? ai.limit : nextTurn.turn === 'R' ? 4.8 : 6.0);
+      if (dT < 14) desired = Math.min(desired, nextTurn.turn === 'S' ? desired : reckless ? 9 : nextTurn.turn === 'R' ? 4.8 : 6.0);
     }
     // traffic light at the lane end
     const stopPt = ai.points.find((p) => p.kind === 'stop');
-    if (stopPt) {
+    if (stopPt && !reckless) {
       const lane = stopPt.lane;
       const node = this.net.nodes[lane.to];
       const dStop = Math.hypot(stopPt.x - v.x, stopPt.z - v.z) - v.hl;
@@ -213,13 +222,15 @@ export class Traffic {
       if (st === LIGHT.YELLOW) mustStop = dStop > v.forwardSpeed * 1.1 + 2;
       // left turns yield to oncoming traffic
       if (!mustStop && ai.nextTurn === 'L' && dStop < 7 && this._oncoming(v, lane, node)) mustStop = true;
+      // do not enter the box if the lane beyond is blocked (prevents gridlock)
+      if (!mustStop && dStop < 14 && ai.nextLane && this._exitBlocked(v, ai.nextLane)) mustStop = true;
       if (mustStop && dStop < 40) {
         const vStop = Math.sqrt(Math.max(0, 2 * 4.5 * (dStop - 0.8)));
         desired = Math.min(desired, dStop < 1.0 ? 0 : vStop);
       }
     }
     // car ahead in our corridor
-    const gap = this._gapAhead(v, player);
+    const gap = reckless ? null : this._gapAhead(v, player);
     if (gap !== null) {
       const vGap = Math.max(0, gap - 3.0) * 1.1;
       desired = Math.min(desired, vGap);
@@ -232,18 +243,35 @@ export class Traffic {
     v.setControls(throttle, brake, steer, false);
     // stuck detection
     if (desired > 2 && v.speed < 0.4) ai.stuck += h; else ai.stuck = Math.max(0, ai.stuck - h * 0.5);
-    if (ai.stuck > 4) { ai.state = 'reverse'; ai.reverseT = 1.4; ai.revSteer = steer; ai.stuck = 0; }
+    if (ai.stuck > (reckless ? 2.2 : 4)) { ai.state = 'reverse'; ai.reverseT = 1.4; ai.revSteer = steer; ai.stuck = 0; }
+  }
+
+  _exitBlocked(v, lane) {
+    const fx = Math.sin(DIR_YAW[lane.dir]), fz = Math.cos(DIR_YAW[lane.dir]);
+    for (const o of this.vehicles.vehicles) {
+      if (o === v || o.speed > 1.5) continue;
+      const dx = o.x - lane.sx, dz = o.z - lane.sz;
+      const along = dx * fx + dz * fz, across = Math.abs(-dx * fz + dz * fx);
+      if (along > -2 && along < 9 && across < 2.2) return true;
+    }
+    return false;
   }
 
   _oncoming(v, lane, node) {
     const od = (lane.dir + 2) % 4;
     for (const o of this.vehicles.vehicles) {
-      if (o === v || o.speed < 1) continue;
+      if (o === v) continue;
       const d = Math.hypot(o.x - node.x, o.z - node.z);
-      if (d > 26) continue;
-      // moving toward the node in direction od
+      if (o.speed < 1) {
+        // an opposite left-turner waiting at its own stop line: the lower id goes first
+        if (o.ai && o.ai.nextTurn === 'L' && d < 13 && o.id < v.id && Math.abs(wrapAngle(o.yaw - DIR_YAW[od])) < 0.5) return true;
+        continue;
+      }
+      if (d > 45 || d / Math.max(o.speed, 0.1) > 4.5) continue;
+      // moving toward the node in direction od, and still on the approach side of it
       const yawDiff = Math.abs(wrapAngle(o.yaw - DIR_YAW[od]));
-      if (yawDiff < 0.5) return true;
+      const approaching = (node.x - o.x) * DIRS[od].x + (node.z - o.z) * DIRS[od].z > 0;
+      if (yawDiff < 0.5 && approaching) return true;
     }
     return false;
   }
@@ -251,11 +279,12 @@ export class Traffic {
   _gapAhead(v, player) {
     const fx = Math.sin(v.yaw), fz = Math.cos(v.yaw), rx = -Math.cos(v.yaw), rz = Math.sin(v.yaw);
     let best = null;
+    const widen = Math.abs(v.steer) * 2.5;    // look wider into the turn
     const check = (ox, oz, oHalf, oRadius) => {
       const dx = ox - v.x, dz = oz - v.z;
       const lf = dx * fx + dz * fz, lr = dx * rx + dz * rz;
       if (lf < 0 || lf > 30) return;
-      if (Math.abs(lr) > v.hw + oRadius * 0.7 + 0.5) return;
+      if (Math.abs(lr) > v.hw + oRadius * 0.7 + 0.5 + widen * Math.min(1, lf / 10)) return;
       const gap = lf - oHalf - v.hl;
       if (best === null || gap < best) best = gap;
     };

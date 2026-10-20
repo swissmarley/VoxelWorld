@@ -167,8 +167,9 @@ export class Effects {
   }
 
   /** Per-frame: integrate pools, emit continuous effects from vehicles. */
-  update(dt, vehicles, camX, camZ) {
+  update(dt, vehicles, camX, camZ, camY = 2) {
     this.time += dt;
+    this.camX = camX; this.camY = camY; this.camZ = camZ;
     this.skidMat.uniforms.time.value = this.time;
     // vehicle-driven emitters
     for (const v of vehicles) {
@@ -183,7 +184,7 @@ export class Effects {
         while (v.smokeAcc > 1) {
           v.smokeAcc -= 1;
           const dark = v.fire || v.health < 20;
-          this.emitSmoke(hoodX, hoodY, hoodZ, dark ? this.range(0.22, 0.36) : this.range(0.16, 0.26), dark ? 0x45434d : 0xb8b8bc, { end: dark ? 0x8a8894 : 0xa6a6ac, vx: v.vx * 0.15, vz: v.vz * 0.15, life: dark ? this.range(1.6, 2.6) : this.range(1.0, 1.8), grow: dark ? 1.5 : 1.2 });
+          this.emitSmoke(hoodX, hoodY, hoodZ, dark ? this.range(0.22, 0.36) : this.range(0.16, 0.26), dark ? 0x45434d : 0xb8b8bc, { end: dark ? 0x8a8894 : 0xa6a6ac, vx: v.vx * 0.8, vz: v.vz * 0.8, drag: 2.2, life: dark ? this.range(1.6, 2.6) : this.range(1.0, 1.8), grow: dark ? 1.5 : 1.2 });
         }
         if (v.fire) {
           v.fireAcc = (v.fireAcc || 0) + dt * 14;
@@ -221,7 +222,9 @@ export class Effects {
       const t = it.age / it.life;
       const size = it.size * (1 + it.grow * t);
       const shrink = t > 0.72 ? 1 - (t - 0.72) / 0.28 : 1;
-      it.sx = it.sy = it.sz = Math.max(0.01, size * shrink);
+      const dc = Math.hypot(it.x - this.camX, it.y - this.camY, it.z - this.camZ);
+      const nearFade = clamp((dc - 1.2) / 2.5, 0, 1);
+      it.sx = it.sy = it.sz = Math.max(0.01, size * shrink * nearFade);
       it.vy += (0.5 - it.vy) * dt * 0.8; it.vx *= Math.exp(-it.drag * dt); it.vz *= Math.exp(-it.drag * dt);
       it.x += it.vx * dt; it.y += it.vy * dt; it.z += it.vz * dt;
       if (it.end) it.color.lerp(it.end, dt * 1.5);

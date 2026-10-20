@@ -93,3 +93,6 @@ b, kbd { font-weight: 800; }
 
 /* scripted captures: no transitions so every frame is final */
 body.capture *, body.capture *::before, body.capture *::after { transition: none !important; animation: none !important; }
+
+.demo-badge { display: none; position: absolute; right: 0; top: 0; background: var(--panel); color: var(--accent-2); font-size: 11px; letter-spacing: .2em; font-weight: 800; padding: 8px 14px; border-radius: 10px; }
+.hud.demo .demo-badge { display: block; }
