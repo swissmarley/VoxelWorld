@@ -10,6 +10,8 @@ going. That loop is the whole game. No missions, weapons, police, pedestrians, s
 
 ## Play
 
+**Online:** https://swissmarley.github.io/VoxelWorld/ (deployed from `main` by GitHub Actions).
+
 ```bash
 npm install        # only needed for the headless tools (Playwright); the game itself has no dependencies
 npm start          # serves the game at http://localhost:8080
