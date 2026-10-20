@@ -41,7 +41,7 @@ await game.hw('__hotwire.setInput({forward:1}); __hotwire.step(4.6)');
 await shot('04-speed.png', 'Flat out down the avenue, chase camera widening with speed');
 
 // 5. handbrake slide
-await game.hw('__hotwire.setInput({back:1}); __hotwire.step(0.5); __hotwire.setInput({forward:1, left:1, handbrake:1}); __hotwire.step(0.55); __hotwire.setInput({forward:1, left:0.5}); __hotwire.step(0.35)');
+await game.hw('__hotwire.setInput({back:1}); __hotwire.step(1.0); __hotwire.setInput({forward:1, left:1, handbrake:1}); __hotwire.step(0.6); __hotwire.setInput({forward:1, left:0.6}); __hotwire.step(0.25)');
 await shot('05-drift.png', 'Handbrake through the intersection, skid marks and tire smoke');
 
 // 6. hand over to the autopilot and wait for a hard crash, then shoot the exact frame
@@ -56,7 +56,8 @@ await shot('06-crash.png', 'The moment of impact: sparks, debris, the body dents
 
 // 7. keep going until wrecked, then shoot the burning wreck half a second later
 let wrecked = false;
-for (let i = 0; i < 60 * 120 && !wrecked; i++) {
+for (let i = 0; i < 60 * 75 && !wrecked; i++) {
+  if (i === 60 * 40) await game.hw('__hotwire.setCarHealth(6)');   // the rampage is slow today: soften the car so the next hit finishes it
   const st = await game.hw('(() => { __hotwire.step(1/60); const s = __hotwire.getState(); return s.car ? s.car.wrecked : false; })()');
   if (st) wrecked = true;
 }
@@ -69,8 +70,18 @@ for (let i = 0; i < 60 * 6 && !onFoot; i++) {
   const st = await game.hw('(() => { __hotwire.step(1/60); return __hotwire.getState().player.state === "walk"; })()');
   if (st) onFoot = true;
 }
-await game.hw('__hotwire.cameraMode(1); __hotwire.step(0.9)');
+await game.hw('__hotwire.step(1.0)');
+await game.hw(`(() => { const g = __hotwire.game; const s = __hotwire.getState(); const w = s.lastCar || s.player; const p = s.player;
+  const mx = (w.x + p.x) / 2, mz = (w.z + p.z) / 2; const dx = p.x - w.x, dz = p.z - w.z; const l = Math.hypot(dx, dz) || 1;
+  // try a few camera spots around the pair; keep the first that is not inside a building or tree
+  const tmp = []; const clear = (x, z) => !g.city.queryStatic(x - 1.5, z - 1.5, x + 1.5, z + 1.5, tmp).some((c) => c.kind === 'building' || c.kind === 'tree');
+  const cands = [[-dz / l, dx / l], [dz / l, -dx / l], [-dx / l, -dz / l], [dx / l, dz / l], [(-dz - dx) / l, (dx - dz) / l], [(dz - dx) / l, (-dx - dz) / l]];
+  let cx = null, cz = null;
+  search: for (const [ox, oz] of cands) for (const d of [10, 13, 8, 16]) { const x = mx + ox * d, z = mz + oz * d; if (clear(x, z) && clear((x + mx) / 2, (z + mz) / 2)) { cx = x; cz = z; break search; } }
+  if (cx === null) __hotwire.freeCamera(mx - dz / l * 4, 16, mz + dx / l * 4, mx, 0.5, mz);   // nothing clear at street level: look down from above
+  else __hotwire.freeCamera(cx, 4.2, cz, mx, 1.0, mz); })()`);
 await shot('08-walk-away.png', 'Back on foot, the wreck still burning, hunting for the next car');
+await game.hw('__hotwire.freeCamera(null)');
 
 // 9. the next car, driving again
 let stolenAgain = false;
@@ -90,7 +101,7 @@ await game.hw('__hotwire.freeCamera(40, 7, 404, -30, 5, 300); __hotwire.step(0.5
 await shot('11-beach.png', 'The waterfront: promenade, palms, pier and the sea');
 
 // 12. golden-hour street level with long shadows
-await game.hw('__hotwire.freeCamera(-28, 2.4, -92, 20, 3, -40); __hotwire.step(0.5)');
+await game.hw('__hotwire.freeCamera(-62, 2.6, -35.5, 40, 4, -39); __hotwire.step(0.5)');
 await shot('12-street.png', 'Street level at golden hour: long shadows, flat color, clean silhouettes');
 
 const stats = await game.stats();

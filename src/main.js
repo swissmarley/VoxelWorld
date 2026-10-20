@@ -338,6 +338,7 @@ window.__hotwire = {
       player: { x: p.x, z: p.z, yaw: p.yaw, state: p.state },
       car: v ? { id: v.id, type: v.type, name: v.spec.name, x: v.x, z: v.z, yaw: v.yaw, kmh: v.kmh, speed: v.speed, health: v.health, wrecked: v.wrecked, lastImpact: { t: v.lastImpact.t, dv: v.lastImpact.dv, x: v.lastImpact.x, z: v.lastImpact.z }, fire: v.fire } : null,
       reachable: p.reachableCar()?.spec.name ?? null,
+      lastCar: p.lastCar ? { x: p.lastCar.x, z: p.lastCar.z, wrecked: p.lastCar.wrecked } : null,
       aiCount: game.traffic.aiCount(),
       ai: (() => { let moving = 0, stopped = 0, dazed = 0, sum = 0, n = 0, wrecked = 0; for (const c of game.vehicles.vehicles) { if (c.controller !== 'ai') continue; n++; sum += c.speed; if (c.wrecked) wrecked++; else if (c.ai?.state === 'dazed') dazed++; else if (c.speed < 0.3) stopped++; else moving++; } return { n, moving, stopped, dazed, wrecked, avgSpeed: n ? +(sum / n).toFixed(2) : 0 }; })(),
       aiCrashes: game.eventLog.filter((e) => e.type === 'crash' && !e.mine && e.j > 2000).length,

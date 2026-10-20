@@ -235,7 +235,7 @@ export function buildRoadGeometry(net, emit, colliders, lampSlots) {
       for (const s of [-1, 1]) {
         const off = s * (net.road / 2 - net.parkWidth);
         const r = rightOf(seg.horizontal ? 0 : 1);
-        gb.slab(mx + r.x * off, Y_MARK - 0.005, mz + r.z * off, seg.horizontal ? len : 0.12, seg.horizontal ? 0.12 : len, 0x5a5563);
+        gb.slab(mx + r.x * off, Y_MARK - 0.005, mz + r.z * off, seg.horizontal ? len : 0.12, seg.horizontal ? 0.12 : len, 0x8c879f);
       }
     });
   }

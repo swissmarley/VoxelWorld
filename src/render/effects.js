@@ -94,7 +94,7 @@ export class Effects {
       const a = Math.atan2(nx, nz) + this.range(-1.2, 1.2);
       const sp = speed * this.range(0.4, 1.3);
       const vx = Math.sin(a) * sp, vz = Math.cos(a) * sp, vy = this.range(1, 6);
-      const it = this.sparks.add({ x, y: y + this.range(0, 0.4), z, vx, vy, vz, life: this.range(0.25, 0.6), sx: 0.06, sy: 0.06, sz: 0.3, color: new THREE.Color(this.rnd() < 0.6 ? 0xffe28a : 0xffa040), q: new THREE.Quaternion() });
+      const it = this.sparks.add({ x, y: y + this.range(0, 0.4), z, vx, vy, vz, life: this.range(0.2, 0.5), sx: 0.035, sy: 0.035, sz: 0.18, color: new THREE.Color(this.rnd() < 0.6 ? 0xffe28a : 0xffa040), q: new THREE.Quaternion() });
       it.q.setFromUnitVectors(_axis.set(0, 0, 1), _p.set(vx, vy, vz).normalize());
     }
   }
@@ -142,7 +142,7 @@ export class Effects {
       uniforms: { time: { value: 0 }, fadeTime: { value: 45 } },
       vertexShader: `attribute float birth; attribute float alpha; varying float vA; uniform float time; uniform float fadeTime;
         void main() { float age = time - birth; vA = alpha * (1.0 - smoothstep(fadeTime * 0.5, fadeTime, age)); if (birth < 0.0) vA = 0.0; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
-      fragmentShader: `varying float vA; void main() { gl_FragColor = vec4(0.09, 0.08, 0.1, vA); }`,
+      fragmentShader: `varying float vA; void main() { gl_FragColor = vec4(0.012, 0.01, 0.016, vA); }`,
     });
     this.skidMesh = new THREE.Mesh(this.skidGeo, this.skidMat);
     this.skidMesh.frustumCulled = false;
@@ -209,7 +209,7 @@ export class Effects {
           const prev = v.skidPrev[w];
           if (prev) {
             const d = Math.hypot(wx - prev.x, wz - prev.z);
-            if (d > 0.12 && d < 3) { this.addSkidQuad(prev.x, prev.z, wx, wz, v.spec.wheelW * 0.95, clamp(0.25 + v.slip * 0.06, 0.25, 0.65)); v.skidPrev[w] = { x: wx, z: wz }; }
+            if (d > 0.12 && d < 3) { this.addSkidQuad(prev.x, prev.z, wx, wz, v.spec.wheelW * 0.95, clamp(0.45 + v.slip * 0.08, 0.45, 0.9)); v.skidPrev[w] = { x: wx, z: wz }; }
             else if (d >= 3) v.skidPrev[w] = { x: wx, z: wz };
           } else v.skidPrev[w] = { x: wx, z: wz };
           if (rear && v.slip > 4 && this.rnd() < dt * 18) this.emitDust(wx, wz, v.vx, v.vz, 0xd8d4d8);
@@ -243,7 +243,7 @@ export class Effects {
       it.x += it.vx * dt; it.y += it.vy * dt; it.z += it.vz * dt;
       if (it.y < 0.03) { it.y = 0.03; it.vy = -it.vy * 0.4; it.vx *= 0.7; it.vz *= 0.7; }
       it.q.setFromUnitVectors(_axis.set(0, 0, 1), _p.set(it.vx, it.vy, it.vz).normalize());
-      it.sz = 0.1 + Math.min(0.5, Math.hypot(it.vx, it.vy, it.vz) * 0.04);
+      it.sz = 0.06 + Math.min(0.28, Math.hypot(it.vx, it.vy, it.vz) * 0.025);
       return true;
     });
     this.debris.update(dt, (it, dt) => {

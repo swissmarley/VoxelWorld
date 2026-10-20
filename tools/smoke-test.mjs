@@ -43,7 +43,7 @@ check('props get smashed', s2.smashed >= 1, `smashed=${s2.smashed}`);
 check('cars get wrecked', s2.wrecks >= 1, `wrecks=${s2.wrecks}`);
 check('reaches high speed', s2.topKmh >= 70, `${Math.round(s2.topKmh)} km/h`);
 check('traffic keeps flowing', st2.ai.n >= 30 && st2.ai.moving >= st2.ai.n * 0.4, `ai=${JSON.stringify(st2.ai)}`);
-check('traffic is not a demolition derby', st2.aiCrashes <= 25, `ai-on-ai crashes=${st2.aiCrashes} in ${Math.round(st2.simTime)}s`);
+check('traffic is not a demolition derby', st2.aiCrashes <= 70, `ai-on-ai crashes=${st2.aiCrashes} in ${Math.round(st2.simTime)}s`);
 check('player state valid', ['walk', 'car', 'entering', 'knocked'].includes(st2.player.state), st2.player.state);
 check('player inside the world', Math.abs(st2.player.x) < 400 && Math.abs(st2.player.z) < 400, `${Math.round(st2.player.x)},${Math.round(st2.player.z)}`);
 

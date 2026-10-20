@@ -1,7 +1,7 @@
 {
   "name": "hotwire",
   "version": "1.0.0",
-  "description": "HOTWIRE — a sunlit low-poly open-world driving sandbox. Walk, steal cars, drive too fast, crash, wreck, repeat.",
+  "description": "HOTWIRE \u2014 a sunlit low-poly open-world driving sandbox. Walk, steal cars, drive too fast, crash, wreck, repeat.",
   "type": "module",
   "private": true,
   "license": "MIT",
@@ -9,7 +9,8 @@
     "start": "node tools/serve.mjs",
     "vendor": "node tools/vendor.mjs",
     "capture": "node tools/capture.mjs",
-    "test": "node tools/smoke-test.mjs"
+    "test": "node tools/smoke-test.mjs",
+    "build": "node tools/build.mjs"
   },
   "dependencies": {
     "three": "0.186.1"

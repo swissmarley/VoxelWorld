@@ -13,17 +13,17 @@ export const CONFIG = {
   physics: { step: 1 / 120, maxSubSteps: 8, gravity: 22 },
   traffic: { target: 64, spawnRadius: 230, despawnRadius: 300, speed: 11.5 },
   parked: { density: 0.2, fill: 0.55, cullDistance: 300 },
-  sun: { azimuthDeg: 236, elevationDeg: 19, color: 0xffd9a6, intensity: 3.6 },
+  sun: { azimuthDeg: 236, elevationDeg: 24, color: 0xffd9a6, intensity: 3.4 },
   sky: { zenith: 0x2e6fd9, mid: 0x7fb6ff, horizon: 0xffd3a4, sunGlow: 0xffe9b8 },
-  hemi: { sky: 0xa6c8ff, ground: 0xc89a6a, intensity: 0.95 },
+  hemi: { sky: 0xa6c8ff, ground: 0xc89a6a, intensity: 1.15 },
   fog: { color: 0xffd3a4, near: 160, far: 640 },
   shadow: { mapSize: 4096, halfSize: 170, far: 700 },
   camera: { fov: 58, near: 0.4, far: 2200 },
 };
 
 export const PALETTE = {
-  road: 0x4b4653,
-  roadEdge: 0x3f3a47,
+  road: 0x7c788c,
+  roadEdge: 0x6a6580,
   marking: 0xf4ead7,
   markingYellow: 0xf1c15a,
   crosswalk: 0xf6efe1,
@@ -60,7 +60,7 @@ export const PALETTE = {
   fountain: 0x8fd0c9,
   towerGlass: [0x6fb4e3, 0x8fd0c9, 0xa9d6f5],
   // cars
-  carPaint: [0xe8402f, 0xf7b500, 0x2c8fe8, 0x27b06b, 0xff7a1a, 0xf2f2f2, 0x7a4bd6, 0xff5ea8, 0x1fc8d6, 0x242432, 0xd94f8c, 0x9ad04a],
+  carPaint: [0xe8402f, 0xf7b500, 0x2c8fe8, 0x27b06b, 0xff7a1a, 0xf2f2f2, 0x7a4bd6, 0xff5ea8, 0x1fc8d6, 0x5dd3ff, 0xd94f8c, 0x9ad04a],
   carGlass: 0x1e2a44,
   carTire: 0x1f1d26,
   carHub: 0xcfcfd6,

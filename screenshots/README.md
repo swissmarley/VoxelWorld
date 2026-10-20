@@ -80,20 +80,20 @@ Street level at golden hour: long shadows, flat color, clean silhouettes
 
 ```json
 {
-  "crashes": 6,
-  "smashed": 0,
+  "crashes": 19,
+  "smashed": 3,
   "wrecks": 1,
-  "stolen": 2,
+  "stolen": 4,
   "topKmh": 84.2446417177064,
   "tris": 238894,
   "colliders": 1348,
   "props": 1362,
   "parking": 443,
   "lanes": 224,
-  "vehicles": 313,
-  "buildMs": 408,
-  "draws": 425,
-  "triangles": 826091,
+  "vehicles": 312,
+  "buildMs": 386,
+  "draws": 330,
+  "triangles": 812756,
   "finalState": "car",
   "errors": []
 }

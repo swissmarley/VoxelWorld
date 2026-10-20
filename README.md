@@ -16,7 +16,8 @@ npm start          # serves the game at http://localhost:8080
 ```
 
 Any static file server works too (`npx serve .`, `python3 -m http.server`); there is no build
-step. Three.js is vendored into `vendor/`.
+step. Three.js is vendored into `vendor/`. `npm run build` additionally bundles everything into
+one self-contained `dist/hotwire.html` you can double-click or hand to someone.
 
 | Key | Action |
 | --- | --- |

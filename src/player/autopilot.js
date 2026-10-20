@@ -50,10 +50,15 @@ export class Autopilot {
         const a = Math.atan2(Math.sin(angle), Math.cos(angle));
         v.setControls(1, 0, Math.max(-1, Math.min(1, a * 2.2)), false);
       } else g.traffic.drive(v, dt, g.simTime, null, { reckless: true, limit: this.limit });
-      // abandon a car that is stuck, nearly dead but refuses to die, or after a long joyride
-      this.stuckT = v.speed < 0.8 && this.driveT > 2 ? this.stuckT + dt : 0;
-      if ((v.health < 12 && this.stuckT > 2.5) || this.stuckT > 6 || this.driveT > 75) {
-        this.abandoned.add(v); input.pulse('interact'); this.driveT = 0; this.stuckT = 0; this.state = 'wait'; this.timer = 0;
+      // abandon a car that makes no progress, is nearly dead but refuses to die, or after a long joyride
+      this.progT = (this.progT || 0) + dt;
+      if (this.progT > 3) {
+        const moved = this.progX === undefined ? 10 : Math.hypot(v.x - this.progX, v.z - this.progZ);
+        this.progX = v.x; this.progZ = v.z; this.progT = 0;
+        this.stuckT = moved < 4 && this.driveT > 3 ? this.stuckT + 3 : 0;
+      }
+      if ((v.health < 12 && this.stuckT >= 3) || this.stuckT >= 9 || this.driveT > 75) {
+        this.abandoned.add(v); input.pulse('interact'); this.driveT = 0; this.stuckT = 0; this.progX = undefined; this.state = 'wait'; this.timer = 0;
       }
       return;
     }

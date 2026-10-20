@@ -139,30 +139,38 @@ export class Vehicle {
     if (this.onSidewalk) a -= vF * 0.08;
     vF += a * h;
 
-    // lateral grip (capped so fast corners become real slides)
+    // yaw first: steering geometry pulls the yaw rate toward the bicycle model, limited to the
+    // yaw rate the tires can actually hold unless the handbrake is on; while sliding the
+    // coupling is weak so collision spins and handbrake turns persist
+    const wheelbase = s.axle[0] - s.axle[1];
+    const maxLatAcc = this.handbrake ? 9 : 26;
+    let target = (vF / wheelbase) * Math.tan(this.steer);
+    if (this.handbrake) target *= 1.35;
+    else { const lim = (maxLatAcc * 1.15) / Math.max(2, Math.abs(vF)); target = clamp(target, -lim, lim); }
+    // sliding: lateral slip, or a spin (from a crash) well beyond what the steering asks for
+    const sliding = Math.abs(vR) > 3.5 || (Math.abs(this.angVel - target) > 1.2 && Math.hypot(this.vx, this.vz) > 3);
+    let coupling = sliding ? 1.6 : (this.handbrake ? 4.5 : 7.5);
+    if (this.wrecked) coupling = 0.8;
+    this.angVel = damp(this.angVel, target, coupling, h);
+    this.angVel = clamp(this.angVel, -4.5, 4.5);
+    // world velocity keeps its direction while the body rotates (inertia creates slip)
+    const wx = fx * vF + rx * vR, wz = fz * vF + rz * vR;
+    this.yaw += this.angVel * h;
+    const fx2 = Math.sin(this.yaw), fz2 = Math.cos(this.yaw), rx2 = -Math.cos(this.yaw), rz2 = Math.sin(this.yaw);
+    vF = wx * fx2 + wz * fz2;
+    vR = wx * rx2 + wz * rz2;
+    // lateral grip (capped so fast corners and handbrake turns become real slides)
     let grip = this.handbrake ? s.drift : s.grip;
-    const sliding = Math.abs(vR) > 3.5;
-    if (sliding) grip *= 0.5;
+    if (sliding) grip *= 0.55;
     if (this.wrecked) grip = 2.5;
     let dvR = vR * (1 - Math.exp(-grip * h));
-    const maxLat = (this.handbrake ? 9 : 26) * h;
+    const maxLat = maxLatAcc * h;
     if (dvR > maxLat) dvR = maxLat; else if (dvR < -maxLat) dvR = -maxLat;
     vR -= dvR;
     this.slip = Math.abs(vR);
 
-    // yaw: steering geometry pulls the yaw rate toward the bicycle model; while sliding the
-    // coupling is weak so collision spins and handbrake turns persist
-    const wheelbase = s.axle[0] - s.axle[1];
-    const target = (vF / wheelbase) * Math.tan(this.steer) * (this.handbrake ? 1.3 : 1);
-    let coupling = sliding ? 1.6 : grip * 0.75;
-    if (this.wrecked) coupling = 0.8;
-    this.angVel = damp(this.angVel, alive || this.wrecked ? target : target, coupling, h);
-    this.angVel = clamp(this.angVel, -4.5, 4.5);
-    this.yaw += this.angVel * h;
-
     this.accF = (vF - this.prevVF) / h; this.accR = (vR - this.prevVR) / h;
     this.prevVF = vF; this.prevVR = vR;
-    const fx2 = Math.sin(this.yaw), fz2 = Math.cos(this.yaw), rx2 = -Math.cos(this.yaw), rz2 = Math.sin(this.yaw);
     this.vx = fx2 * vF + rx2 * vR; this.vz = fz2 * vF + rz2 * vR;
     this.x += this.vx * h; this.z += this.vz * h;
     this.wheelSpin += vF / s.wheelR * h;

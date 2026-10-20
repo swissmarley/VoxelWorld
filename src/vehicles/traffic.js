@@ -241,9 +241,14 @@ export class Traffic {
     let throttle = clamp(err * 0.45, 0, 1), brake = clamp(-err * 0.35, 0, 1);
     if (desired < 0.3 && vF < 0.6) { throttle = 0; brake = 1; }
     v.setControls(throttle, brake, steer, false);
-    // stuck detection
-    if (desired > 2 && v.speed < 0.4) ai.stuck += h; else ai.stuck = Math.max(0, ai.stuck - h * 0.5);
-    if (ai.stuck > (reckless ? 2.2 : 4)) { ai.state = 'reverse'; ai.reverseT = 1.4; ai.revSteer = steer; ai.stuck = 0; }
+    // stuck detection: wanting to move but making no progress over a few seconds
+    ai.progT = (ai.progT || 0) + h;
+    if (ai.progT > 2.5) {
+      const moved = ai.progX === undefined ? 10 : Math.hypot(v.x - ai.progX, v.z - ai.progZ);
+      ai.progX = v.x; ai.progZ = v.z; ai.progT = 0;
+      if (desired > 2 && moved < 2.0) ai.stuck += 1; else ai.stuck = 0;
+    }
+    if (ai.stuck >= (reckless ? 1 : 2)) { ai.state = 'reverse'; ai.reverseT = 1.4; ai.revSteer = steer; ai.stuck = 0; ai.progX = undefined; }
   }
 
   _exitBlocked(v, lane) {
